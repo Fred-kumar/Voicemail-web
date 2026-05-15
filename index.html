@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EchoLine — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080c10;--surface:#0d1318;--border:#1a2330;--accent:#00d4aa;--accent2:#0099ff;--text:#e8edf2;--muted:#5a6b7a;--error:#ff4d6a}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;display:grid;place-items:center;overflow:hidden;position:relative}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,170,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,.04) 1px,transparent 1px);background-size:40px 40px;animation:grid-drift 20s linear infinite;pointer-events:none}
+@keyframes grid-drift{0%{transform:translate(0,0)}100%{transform:translate(40px,40px)}}
+.orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;animation:float 8s ease-in-out infinite}
+.orb-1{width:400px;height:400px;background:rgba(0,212,170,.07);top:-10%;left:-10%;animation-delay:0s}
+.orb-2{width:300px;height:300px;background:rgba(0,153,255,.06);bottom:-5%;right:-5%;animation-delay:3s}
+@keyframes float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-20px) scale(1.05)}}
+.card{position:relative;width:min(420px,94vw);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px 40px;box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(0,212,170,.05);animation:card-in .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes card-in{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:grid;place-items:center;font-size:18px}
+.logo-name{font-family:'DM Serif Display',serif;font-size:22px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tabs{display:flex;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:28px}
+.tab{flex:1;padding:8px;border:none;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.5px;border-radius:7px;cursor:pointer;transition:all .2s}
+.tab.active{background:linear-gradient(135deg,rgba(0,212,170,.2),rgba(0,153,255,.15));color:var(--accent);box-shadow:0 0 0 1px rgba(0,212,170,.3)}
+.field{margin-bottom:18px}
+label{display:block;font-size:11px;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+input{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;outline:none;transition:all .2s}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,170,.1);background:rgba(0,212,170,.03)}
+input::placeholder{color:var(--muted)}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#040a0e;font-family:'DM Mono',monospace;font-weight:500;font-size:14px;cursor:pointer;margin-top:8px;transition:all .2s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,212,170,.3)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+.alert.error{background:rgba(255,77,106,.1);border:1px solid rgba(255,77,106,.3);color:#ff8099}
+.alert.success{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.25);color:var(--accent)}
+.alert.show{display:block}
+.hint{text-align:center;margin-top:20px;font-size:12px;color:var(--muted)}
+.hint span{color:var(--accent);cursor:pointer}
+.strength-bar{height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.strength-fill{height:100%;border-radius:2px;transition:all .3s;width:0%}
+.strength-label{font-size:11px;color:var(--muted);margin-top:5px;text-align:right}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="card">
+  <div class="logo"><div class="logo-icon">🎙</div><div class="logo-name">EchoLine</div></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+    <button class="tab" id="tab-register" onclick="switchTab('register')">Create Account</button>
+  </div>
+  <div id="alert" class="alert"></div>
+  <div id="form-login">
+    <div class="field"><label>Email Address</label><input type="email" id="login-email" placeholder="you@example.com"/></div>
+    <div class="field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"/></div>
+    <button class="btn" id="btn-login" onclick="handleLogin()">Sign In</button>
+    <div class="hint">No account? <span onclick="switchTab('register')">Create one →</span></div>
+  </div>
+  <div id="form-register" style="display:none">
+    <div class="field"><label>Email Address</label><input type="email" id="reg-email" placeholder="you@example.com"/></div>
+    <div class="field"><label>Password</label><input type="password" id="reg-password" placeholder="Min. 6 characters" oninput="checkStrength()"/>
+      <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+      <div class="strength-label" id="strength-label"></div>
+    </div>
+    <button class="btn" id="btn-register" onclick="handleRegister()">Create Account</button>
+    <div class="hint">Have an account? <span onclick="switchTab('login')">Sign in →</span></div>
+  </div>
+</div>
+<script>
+function switchTab(t){
+  document.getElementById("form-login").style.display=t==="login"?"block":"none";
+  document.getElementById("form-register").style.display=t==="register"?"block":"none";
+  document.getElementById("tab-login").className="tab"+(t==="login"?" active":"");
+  document.getElementById("tab-register").className="tab"+(t==="register"?" active":"");
+  clearAlert();
+}
+function showAlert(msg,type="error"){const el=document.getElementById("alert");el.textContent=msg;el.className="alert "+type+" show"}
+function clearAlert(){document.getElementById("alert").className="alert"}
+function checkStrength(){
+  const pw=document.getElementById("reg-password").value;
+  let s=0;if(pw.length>=6)s++;if(pw.length>=10)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;
+  const L=[{w:"0%",c:"transparent",t:""},{w:"25%",c:"#ff4d6a",t:"Weak"},{w:"50%",c:"#ffa040",t:"Fair"},{w:"75%",c:"#ffd040",t:"Good"},{w:"100%",c:"#00d4aa",t:"Strong"}];
+  const l=L[Math.min(s,4)];
+  document.getElementById("strength-fill").style.width=l.w;
+  document.getElementById("strength-fill").style.background=l.c;
+  const sl=document.getElementById("strength-label");sl.textContent=l.t;sl.style.color=l.c;
+}
+async function handleLogin(){
+  clearAlert();
+  const email=document.getElementById("login-email").value.trim();
+  const password=document.getElementById("login-password").value;
+  if(!email||!password)return showAlert("Please fill in all fields");
+  const btn=document.getElementById("btn-login");btn.disabled=true;btn.textContent="Signing in...";
+  try{
+    const res=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+    const data=await res.json();
+    if(!res.ok)return showAlert(data.error||"Login failed");
+    localStorage.setItem("token",data.token);localStorage.setItem("user",JSON.stringify(data.user));
+    showAlert("Welcome back! Redirecting…","success");
+    setTimeout(()=>window.location.href="/app.html",800);
+  }catch(e){showAlert("Connection error — is the server running?")}
+  finally{btn.disabled=false;btn.textContent="Sign In"}
+}
+async function handleRegister(){
+  clearAlert();
+  const email=document.getElementById("reg-email").value.trim();
+  const password=document.getElementById("reg-password").value;
+  if(!email||!password)return showAlert("Please fill in all fields");
+  if(password.length<6)return showAlert("Password must be at least 6 characters");
+  const btn=document.getElementById("btn-register");btn.disabled=true;btn.textContent="Creating account...";
+  try{
+    const res=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
+    const data=await res.json();
+    if(!res.ok)return showAlert(data.error||"Registration failed");
+    localStorage.setItem("token",data.token);localStorage.setItem("user",JSON.stringify(data.user));
+    showAlert("Account created! Redirecting…","success");
+    setTimeout(()=>window.location.href="/app.html",800);
+  }catch(e){showAlert("Connection error — is the server running?")}
+  finally{btn.disabled=false;btn.textContent="Create Account"}
+}
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Enter")return;
+  if(document.getElementById("form-login").style.display!=="none")handleLogin();else handleRegister();
+});
+if(localStorage.getItem("token"))window.location.href="/app.html";
+</script>
+</body>
+</html>
