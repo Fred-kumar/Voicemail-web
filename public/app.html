@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EchoLine — Voice Calls</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080c10;--panel:#0d1318;--border:#1a2330;--accent:#00d4aa;--accent2:#0099ff;--text:#e8edf2;--muted:#5a6b7a;--danger:#ff4d6a}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:60px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:grid;place-items:center;font-size:15px}
+.logo-name{font-family:'DM Serif Display',serif;font-size:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.user-badge{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.user-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.4)}50%{box-shadow:0 0 0 6px rgba(0,212,170,0)}}
+.logout-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s}
+.logout-btn:hover{border-color:var(--danger);color:var(--danger)}
+
+/* layout */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* sidebar */
+.sidebar{width:260px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+.sidebar-title{font-size:11px;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase}
+.online-count{display:inline-flex;align-items:center;gap:5px;margin-top:2px;font-size:12px;color:var(--accent)}
+.dot-green{width:6px;height:6px;background:var(--accent);border-radius:50%}
+.users-list{flex:1;overflow-y:auto;padding:8px}
+.users-list::-webkit-scrollbar{width:3px}
+.users-list::-webkit-scrollbar-thumb{background:var(--border)}
+.user-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .2s;border:1px solid transparent}
+.user-item:hover{background:rgba(0,212,170,.05);border-color:rgba(0,212,170,.15)}
+.user-item.calling{background:rgba(0,212,170,.08);border-color:rgba(0,212,170,.3)}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,170,.3),rgba(0,153,255,.3));border:1px solid rgba(0,212,170,.2);display:grid;place-items:center;font-size:14px;font-weight:500;flex-shrink:0;color:var(--accent)}
+.user-email{font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-status{font-size:10px;color:var(--muted)}
+.call-btn{margin-left:auto;width:28px;height:28px;border-radius:50%;background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.25);color:var(--accent);display:grid;place-items:center;font-size:14px;cursor:pointer;transition:all .2s;flex-shrink:0}
+.call-btn:hover{background:var(--accent);color:#040a0e;transform:scale(1.1)}
+.no-users{padding:24px 16px;text-align:center;color:var(--muted);font-size:12px;line-height:1.8}
+
+/* content area */
+.content{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+.idle-screen{text-align:center;animation:fade-in .5s ease}
+@keyframes fade-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.idle-icon{width:100px;height:100px;background:rgba(0,212,170,.06);border:1px solid rgba(0,212,170,.15);border-radius:50%;display:grid;place-items:center;font-size:42px;margin:0 auto 20px;animation:idle-pulse 3s ease-in-out infinite}
+@keyframes idle-pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.1)}50%{box-shadow:0 0 0 20px rgba(0,212,170,0)}}
+.idle-title{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:8px}
+.idle-sub{color:var(--muted);font-size:13px}
+
+/* call screen */
+.call-screen{display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;animation:fade-in .4s ease}
+.call-avatar{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,170,.3),rgba(0,153,255,.2));border:2px solid rgba(0,212,170,.4);display:grid;place-items:center;font-size:32px;position:relative}
+.call-ring{position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(0,212,170,.3);animation:ring 1.5s ease-out infinite}
+.call-ring:nth-child(2){animation-delay:.5s;inset:-16px}
+@keyframes ring{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.3)}}
+.call-name{font-family:'DM Serif Display',serif;font-size:24px}
+.call-status{font-size:13px;color:var(--muted);letter-spacing:.5px}
+.call-timer{font-size:22px;color:var(--accent);font-weight:500;letter-spacing:2px}
+.call-controls{display:flex;gap:14px;margin-top:8px}
+.ctrl-btn{width:56px;height:56px;border-radius:50%;border:none;display:grid;place-items:center;font-size:22px;cursor:pointer;transition:all .2s}
+.ctrl-btn:hover{transform:scale(1.08)}
+.btn-mute{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text)}
+.btn-mute.active{background:rgba(255,77,106,.15);border-color:rgba(255,77,106,.4);color:var(--danger)}
+.btn-end{background:var(--danger);color:#fff}
+.btn-end:hover{background:#e0002a}
+.btn-answer{background:var(--accent);color:#040a0e}
+.answer-controls{display:flex;gap:14px}
+
+/* incoming modal */
+.incoming-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:100}
+.incoming-card{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:40px;text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.8);animation:pop-in .3s cubic-bezier(.22,1,.36,1)}
+@keyframes pop-in{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.inc-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,170,.3),rgba(0,153,255,.2));border:2px solid rgba(0,212,170,.4);display:grid;place-items:center;font-size:28px;margin:0 auto 14px;animation:ring-anim 1s ease-in-out infinite}
+@keyframes ring-anim{0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.4)}50%{box-shadow:0 0 0 14px rgba(0,212,170,0)}}
+.inc-label{font-size:11px;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.inc-name{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:24px}
+.inc-controls{display:flex;gap:14px;justify-content:center}
+.inc-btn{width:56px;height:56px;border-radius:50%;border:none;font-size:22px;cursor:pointer;transition:all .2s}
+.inc-btn:hover{transform:scale(1.08)}
+.btn-decline{background:var(--danger);color:#fff}
+.btn-accept{background:var(--accent);color:#040a0e}
+
+audio{display:none}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="logo-icon">🎙</div><div class="logo-name">EchoLine</div></div>
+  <div class="user-badge">
+    <div class="user-dot"></div>
+    <span id="user-email-display"></span>
+  </div>
+  <button class="logout-btn" onclick="logout()">Sign out</button>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Online Users</div>
+      <div class="online-count"><div class="dot-green"></div><span id="online-count">0</span> online</div>
+    </div>
+    <div class="users-list" id="users-list">
+      <div class="no-users">No other users online yet.<br/>Share the link to invite someone!</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Idle screen -->
+    <div class="idle-screen" id="idle-screen">
+      <div class="idle-icon">🎙</div>
+      <div class="idle-title">Ready to Connect</div>
+      <div class="idle-sub">Select someone from the sidebar to start a voice call</div>
+    </div>
+
+    <!-- Active call screen -->
+    <div class="call-screen" id="call-screen">
+      <div class="call-avatar" id="call-avatar">
+        <div class="call-ring"></div>
+        <div class="call-ring"></div>
+        <span id="call-avatar-char">?</span>
+      </div>
+      <div class="call-name" id="call-peer-name"></div>
+      <div class="call-status" id="call-status">Connecting…</div>
+      <div class="call-timer" id="call-timer" style="display:none">00:00</div>
+      <div class="call-controls">
+        <button class="ctrl-btn btn-mute" id="btn-mute" onclick="toggleMute()" title="Mute">🎤</button>
+        <button class="ctrl-btn btn-end" onclick="endCall()" title="End call">📵</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incoming call modal -->
+<div class="incoming-overlay" id="incoming-overlay">
+  <div class="incoming-card">
+    <div class="inc-avatar" id="inc-avatar">?</div>
+    <div class="inc-label">Incoming Voice Call</div>
+    <div class="inc-name" id="inc-caller-name"></div>
+    <div class="inc-controls">
+      <button class="inc-btn btn-decline" onclick="rejectCall()" title="Decline">📵</button>
+      <button class="inc-btn btn-accept" onclick="acceptCall()" title="Accept">📞</button>
+    </div>
+  </div>
+</div>
+
+<audio id="remote-audio" autoplay></audio>
+<audio id="ring-audio" loop></audio>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ── auth guard ────────────────────────────────────────────
+const token = localStorage.getItem("token");
+const user = JSON.parse(localStorage.getItem("user") || "null");
+if (!token || !user) { window.location.href = "/"; }
+
+document.getElementById("user-email-display").textContent = user.email;
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "/";
+}
+
+// ── socket ────────────────────────────────────────────────
+const socket = io({ auth: { token } });
+
+let onlineList = [];
+let allRegisteredUsers = [];
+let peerConnection = null;
+let localStream = null;
+let currentPeer = null;
+let timerInterval = null;
+let timerSecs = 0;
+let isMuted = false;
+let incomingOffer = null;
+let incomingFrom = null;
+
+// Load all registered users
+async function loadUsers() {
+  try {
+    const res = await fetch("/api/users", { headers: { Authorization: "Bearer " + token } });
+    if (res.ok) allRegisteredUsers = await res.json();
+    renderUsers();
+  } catch(e) {}
+}
+loadUsers();
+
+socket.on("online-users", (list) => {
+  onlineList = list.filter(e => e !== user.email);
+  document.getElementById("online-count").textContent = list.length;
+  renderUsers();
+});
+
+function renderUsers() {
+  const container = document.getElementById("users-list");
+  const online = onlineList;
+  if (!online.length) {
+    container.innerHTML = '<div class="no-users">No other users online yet.<br/>Share the link to invite someone!</div>';
+    return;
+  }
+  container.innerHTML = online.map(email => {
+    const initials = email[0].toUpperCase();
+    return `<div class="user-item" id="user-item-${btoa(email)}">
+      <div class="avatar">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="user-email">${email}</div>
+        <div class="user-status">● online</div>
+      </div>
+      <div class="call-btn" onclick="startCall('${email}')" title="Call ${email}">📞</div>
+    </div>`;
+  }).join("");
+}
+
+// ── WebRTC helpers ────────────────────────────────────────
+const ICE_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+async function getMedia() {
+  return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+}
+
+function createPC(targetEmail) {
+  const pc = new RTCPeerConnection(ICE_CONFIG);
+  pc.onicecandidate = (e) => {
+    if (e.candidate) socket.emit("ice-candidate", { targetEmail, candidate: e.candidate });
+  };
+  pc.ontrack = (e) => {
+    document.getElementById("remote-audio").srcObject = e.streams[0];
+  };
+  pc.onconnectionstatechange = () => {
+    const s = pc.connectionState;
+    if (s === "connected") {
+      setStatus("Connected");
+      startTimer();
+      document.getElementById("call-timer").style.display = "block";
+    } else if (s === "disconnected" || s === "failed") {
+      endCall();
+    }
+  };
+  return pc;
+}
+
+// ── Outgoing call ─────────────────────────────────────────
+async function startCall(targetEmail) {
+  if (currentPeer) return;
+  currentPeer = targetEmail;
+  showCallScreen(targetEmail, "Calling…");
+  try {
+    localStream = await getMedia();
+    peerConnection = createPC(targetEmail);
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket.emit("call-user", { targetEmail, offer });
+  } catch (e) {
+    showAlert("Microphone access denied");
+    hangupClean();
+  }
+}
+
+socket.on("call-failed", ({ reason }) => {
+  showAlert(reason || "Call failed");
+  hangupClean();
+});
+
+socket.on("call-answered", async ({ from, answer }) => {
+  if (!peerConnection) return;
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  setStatus("Connecting…");
+});
+
+socket.on("call-rejected", ({ from }) => {
+  showAlert(`${from} declined the call`);
+  hangupClean();
+});
+
+// ── Incoming call ─────────────────────────────────────────
+socket.on("incoming-call", ({ from, offer }) => {
+  if (currentPeer) { socket.emit("call-reject", { targetEmail: from }); return; }
+  incomingFrom = from;
+  incomingOffer = offer;
+  showIncoming(from);
+});
+
+async function acceptCall() {
+  if (!incomingOffer) return;
+  hideIncoming();
+  currentPeer = incomingFrom;
+  showCallScreen(incomingFrom, "Connecting…");
+  try {
+    localStream = await getMedia();
+    peerConnection = createPC(incomingFrom);
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit("call-answer", { targetEmail: incomingFrom, answer });
+  } catch (e) {
+    showAlert("Microphone access denied");
+    hangupClean();
+  }
+}
+
+function rejectCall() {
+  if (incomingFrom) socket.emit("call-reject", { targetEmail: incomingFrom });
+  hideIncoming();
+  incomingFrom = null; incomingOffer = null;
+}
+
+socket.on("ice-candidate", async ({ from, candidate }) => {
+  if (peerConnection && candidate) {
+    try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
+  }
+});
+
+socket.on("call-ended", () => {
+  showAlert("Call ended by the other party");
+  hangupClean();
+});
+
+// ── Controls ──────────────────────────────────────────────
+function toggleMute() {
+  if (!localStream) return;
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  const btn = document.getElementById("btn-mute");
+  btn.classList.toggle("active", isMuted);
+  btn.textContent = isMuted ? "🔇" : "🎤";
+}
+
+function endCall() {
+  if (currentPeer) socket.emit("call-end", { targetEmail: currentPeer });
+  hangupClean();
+}
+
+function hangupClean() {
+  if (peerConnection) { peerConnection.close(); peerConnection = null; }
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  stopTimer();
+  document.getElementById("remote-audio").srcObject = null;
+  currentPeer = null; incomingFrom = null; incomingOffer = null; isMuted = false;
+  document.getElementById("btn-mute").textContent = "🎤";
+  document.getElementById("btn-mute").classList.remove("active");
+  hideCallScreen();
+}
+
+// ── Timer ─────────────────────────────────────────────────
+function startTimer() {
+  timerSecs = 0;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timerSecs++;
+    const m = String(Math.floor(timerSecs/60)).padStart(2,"0");
+    const s = String(timerSecs%60).padStart(2,"0");
+    document.getElementById("call-timer").textContent = m+":"+s;
+  }, 1000);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerSecs = 0;
+  document.getElementById("call-timer").textContent = "00:00";
+  document.getElementById("call-timer").style.display = "none";
+}
+
+// ── UI helpers ────────────────────────────────────────────
+function showCallScreen(email, status) {
+  document.getElementById("idle-screen").style.display = "none";
+  const cs = document.getElementById("call-screen");
+  cs.style.display = "flex";
+  document.getElementById("call-peer-name").textContent = email;
+  document.getElementById("call-avatar-char").textContent = email[0].toUpperCase();
+  setStatus(status);
+}
+function hideCallScreen() {
+  document.getElementById("call-screen").style.display = "none";
+  document.getElementById("idle-screen").style.display = "block";
+}
+function setStatus(s) { document.getElementById("call-status").textContent = s; }
+function showIncoming(email) {
+  document.getElementById("inc-caller-name").textContent = email;
+  document.getElementById("inc-avatar").textContent = email[0].toUpperCase();
+  document.getElementById("incoming-overlay").style.display = "flex";
+}
+function hideIncoming() { document.getElementById("incoming-overlay").style.display = "none"; }
+
+let alertTimeout;
+function showAlert(msg) {
+  clearTimeout(alertTimeout);
+  const d = document.createElement("div");
+  d.style.cssText = "position:fixed;bottom:24px;right:24px;background:#0d1318;border:1px solid #1a2330;color:#e8edf2;padding:12px 18px;border-radius:10px;font-size:13px;font-family:'DM Mono',monospace;z-index:200;animation:fade-in .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.5)";
+  d.textContent = msg;
+  document.body.appendChild(d);
+  alertTimeout = setTimeout(() => d.remove(), 3500);
+}
+
+socket.on("connect_error", () => showAlert("Connection error"));
+</script>
+</body>
+</html>
