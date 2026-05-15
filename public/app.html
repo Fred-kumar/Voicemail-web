@@ -217,7 +217,19 @@ function renderUsers() {
 }
 
 // ── WebRTC helpers ────────────────────────────────────────
-const ICE_CONFIG = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+const ICE_CONFIG = { iceServers: [
+  { urls: "stun:stun.l.google.com:19302" },
+  {
+    urls: "turn:relay.metered.ca:80",
+    username: "TUMHARA_USERNAME",
+    credential: "TUMHARA_PASSWORD"
+  },
+  {
+    urls: "turn:relay.metered.ca:443",
+    username: "TUMHARA_USERNAME",
+    credential: "TUMHARA_PASSWORD"
+  }
+]};
 
 async function getMedia() {
   return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
